@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Off Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            text-align: left;
+        }
+        .confirm-button {
+            display: block;
+            margin: auto;
+            padding: 5px 10px;
+            background-color: #FF0000;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h2>Sign Off</h2>
+    <h3 id="clientName" style="font-size: 18px; font-weight: bold; color: #333;"></h3>
+    <table>
+        <tr>
+            <th>Job Role</th>
+            <th>Sign</th>
+            <th>Date</th>
+        </tr>
+        <tr>
+            <td>Relationship Manager</td>
+            <td><button class="confirm-button" onclick="confirmRole('Relationship Manager')">Confirm</button></td>
+            <td id="date-Relationship Manager"></td>
+        </tr>
+        <tr>
+            <td>Scheme Administrator</td>
+            <td><button class="confirm-button" onclick="confirmRole('Scheme Administrator')">Confirm</button></td>
+            <td id="date-Scheme Administrator"></td>
+        </tr>
+        <tr>
+            <td>Wellness</td>
+            <td><button class="confirm-button" onclick="confirmRole('Wellness')">Confirm</button></td>
+            <td id="date-Wellness"></td>
+        </tr>
+        <tr>
+            <td>Reimbursement</td>
+            <td><button class="confirm-button" onclick="confirmRole('Reimbursement')">Confirm</button></td>
+            <td id="date-Reimbursement"></td>
+        </tr>
+        <tr>
+            <td>Healthcare AGM</td>
+            <td><button class="confirm-button" onclick="confirmRole('Healthcare AGM')">Confirm</button></td>
+            <td id="date-Healthcare AGM"></td>
+        </tr>
+        <tr>
+            <td>Healthcare GM</td>
+            <td><button class="confirm-button" onclick="confirmRole('Healthcare GM')">Confirm</button></td>
+            <td id="date-Healthcare GM"></td>
+        </tr>
+    </table>
+    <button class="confirm-button">Sign Off</button>
+
+    <script>
+        // Fetch and display the client name from the session
+        async function fetchClientName() {
+            try {
+                const response = await fetch("/get_client_name/"); // Endpoint to get the client name
+                const data = await response.json();
+
+                if (response.ok && data.client_name) {
+                    // Display the client name in the placeholder
+                    document.getElementById("clientName").textContent = `Client: ${data.client_name}`;
+                } else {
+                    console.error("Failed to fetch client name:", data);
+                }
+            } catch (error) {
+                console.error("Error fetching client name:", error);
+            }
+        }
+        document.addEventListener("DOMContentLoaded", fetchClientName);
+
+        async function confirmRole(role) {
+            const userEmail = prompt("Enter your email to confirm:");
+
+            if (!userEmail) {
+                alert("Confirmation requires an email.");
+                return;
+            }
+
+            try {
+                const response = await fetch(`/signoffs/confirm/${role}/?confirmed_by=${userEmail}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" }
+                });
+
+                if (response.ok) {
+                    document.getElementById(`date-${role}`).innerText = new Date().toLocaleDateString();
+                    alert(`${role} confirmed. Notification sent to the next role.`);
+                } else {
+                    alert("Failed to confirm. Try again.");
+                }
+            } catch (error) {
+                console.error("Error confirming role:", error);
+                alert("An error occurred.");
+            }
+        }
+    </script>
+</body>
+</html>

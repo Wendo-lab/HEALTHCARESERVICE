@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extra Client Details</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            position: relative;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 600px;
+            text-align: center;
+            position: relative;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        td, th {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ccc;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 15px;
+            background-color: #FF0000;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:disabled {
+            background-color: gray;
+            cursor: not-allowed;
+        }
+
+        button:hover:enabled {
+            background-color: #D00000;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        #nextButton {
+            display: none;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: #555;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .back-button:hover {
+            background-color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-button" onclick="goBack()">← Back</button>
+        <h2>Extra Client Details</h2>
+        <span id="clientName" style="font-size: 18px; font-weight: bold; color: #333;"></span> <!-- Client name placeholder -->
+         
+        <form id="extraClientForm">
+            <input type="hidden" name="client_name" id="clientNameInput">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Other Client Personnel</th>
+                        <th>Designation</th>
+                        <th>Cell</th>
+                        <th>Email</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text" name="other_client_personel"></td>
+                        <td><input type="text" name="designation"></td>
+                        <td><input type="text" name="cell"></td>
+                        <td><input type="email" name="email"></td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" name="other_client_personel"></td>
+                        <td><input type="text" name="designation"></td>
+                        <td><input type="text" name="cell"></td>
+                        <td><input type="email" name="email"></td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" name="other_client_personel"></td>
+                        <td><input type="text" name="designation"></td>
+                        <td><input type="text" name="cell"></td>
+                        <td><input type="email" name="email"></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <button type="submit" id="submitButton">Submit</button>
+        </form>
+
+        <div class="nav-buttons">
+            <button id="nextButton" onclick="goToNextPage()">Next →</button>
+        </div>
+
+        <p id="responseMessage"></p>
+    </div>
+
+    <script>
+        // Fetch and display the client name from the session
+        // Fetch and display the client name from the session
+async function fetchClientName() {
+    try {
+        const response = await fetch("/get_client_name/");
+        const data = await response.json();
+
+        if (response.ok && data.client_name) {
+            // Display the client name
+            document.getElementById("clientName").textContent = `Client: ${data.client_name}`;
+            // Set the hidden input value
+            document.getElementById("clientNameInput").value = data.client_name;
+        } else {
+            console.error("Failed to fetch client name:", data);
+        }
+    } catch (error) {
+        console.error("Error fetching client name:", error);
+    }
+}
+
+// Call the function when the page loads
+document.addEventListener("DOMContentLoaded", fetchClientName);
+
+        // Existing form submission logic
+        document.getElementById("extraClientForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+        
+            const formData = new FormData(this);
+        
+            try {
+                const response = await fetch("/extra_client_details/", {
+                    method: "POST",
+                    body: formData,
+                    headers: {
+                        "Accept": "application/json",
+                    },
+                });
+        
+                const data = await response.json();
+        
+                if (!response.ok) {
+                    console.error("Server error:", data);
+                    throw new Error(data.message || "Failed to submit form");
+                }
+        
+                document.getElementById("responseMessage").textContent = data.message;
+                document.getElementById("responseMessage").style.color = "green";
+        
+                // Show and enable the next button after submission
+                document.getElementById("nextButton").style.display = "block";
+        
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById("responseMessage").textContent = "Error submitting form.";
+                document.getElementById("responseMessage").style.color = "red";
+            }
+        });
+        // Existing navigation functions
+        function goToNextPage() {
+            window.location.href = "/annualplan/";
+        }
+
+        function goBack() {
+            window.location.href = "/client/";
+        }
+    </script>
+</body>
+</html>

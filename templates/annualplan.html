@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annual Service Plan</title>
+    <style>
+        /* Your existing CSS styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .form-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 80%;
+            gap: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        .question-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .question {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .question-text {
+            flex: 1;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+        .dropdown-container {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown {
+            display: none;
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .dropdown-container:hover .dropdown {
+            display: block;
+        }
+        .dropdown label {
+            display: block;
+            cursor: pointer;
+        }
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #FF0000;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #cc0000;
+        }
+        #nextPageButton {
+            display: none; /* Initially hidden */
+            background-color: #FF0000;
+        }
+        #nextPageButton:hover {
+            background-color: #cc0000;
+        }
+        .back-button {
+            margin-left: auto; /* Aligns to the right */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>PROPOSED ANNUAL SERVICE PLAN-FOR THE RENEWAL PERIOD</h2>
+        <p>To be filled at commencement of the client's renewal cycle.</p>
+        <p>Based on the client requirements, the servicing plan would typically encompass the following activities within suggested months.</p>
+        <p>The client will be contacted to agree on specific dates for proposed activities. Location-Kenya only</p>
+        <span id="clientName" style="font-size: 18px; font-weight: bold; color: #333;"></span>
+        <div class="form-container">
+            <form id="servicePlanForm">
+                <div class="question-container">
+                    {% for question in questions %}
+                        <div class="question">
+                            <div class="question-text">{{ question.text }}</div>
+                            <div class="dropdown-container">
+                                <label>Select Months</label>
+                                <div class="dropdown">
+                                    {% for month in ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] %}
+                                        <label>
+                                            <input type="checkbox" name="months-{{ question.id }}" value="{{ month }}"
+                                                {% if question.response and month in question.response.selected_months %}checked{% endif %}>
+                                            {{ month }}
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Buttons Container -->
+                <div class="button-container">
+                    <button type="submit">Submit Responses</button>
+                    <span><button id="nextPageButton" onclick="goToNextPage()">Next Page</button></span>
+                    <button class="back-button" onclick="goBack()">Back</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const clientId = "{{ client_id }}";  // Use client_id passed from the backend
+
+        // Fetch and display the client name from the session
+        async function fetchClientName() {
+            try {
+                const response = await fetch("/get_client_name/");
+                const data = await response.json();
+
+                if (response.ok && data.client_name) {
+                    document.getElementById("clientName").textContent = `Client: ${data.client_name}`;
+                } else {
+                    console.error("Failed to fetch client name:", data);
+                }
+            } catch (error) {
+                console.error("Error fetching client name:", error);
+            }
+        }
+
+        // Call the function when the page loads
+        document.addEventListener("DOMContentLoaded", fetchClientName);
+
+        // Handle form submission
+        document.getElementById("servicePlanForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const responses = {};
+
+            // Collect selected responses
+            document.querySelectorAll("input[type='checkbox']:checked").forEach(checkbox => {
+                const questionId = checkbox.name.split('-')[1];
+
+                if (!responses[questionId]) {
+                    responses[questionId] = {
+                        client_id: parseInt(clientId),
+                        question_id: parseInt(questionId),
+                        selected_months: []
+                    };
+                }
+                responses[questionId].selected_months.push(checkbox.value);
+            });
+
+            // Log the collected responses
+            console.log("Collected Responses:", responses);
+
+            // Convert object to array
+            const responseArray = Object.values(responses);
+
+            // Check if any responses are selected
+            if (responseArray.length === 0) {
+                alert("No responses selected. Please select at least one response.");
+                return;
+            }
+
+            // Confirm saving responses
+            const confirmSave = confirm("Do you want to save the selected responses?");
+            if (!confirmSave) {
+                return;
+            }
+
+            // Send responses to the server
+            try {
+                const response = await fetch("/responses/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(responseArray)
+                });
+
+                const result = await response.json();
+                console.log("Server Response:", result);
+                alert(result.message);
+
+                // Show the "Next Page" button after successful submission
+                if (response.ok) {
+                    document.getElementById("nextPageButton").style.display = "inline-block";
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Failed to save responses. Please try again.");
+            }
+        });
+
+        // Navigation functions
+        function goToNextPage() {
+            window.location.href = "/serviceplan/";
+        }
+
+        function goBack() {
+            window.history.back();
+        }
+    </script>
+</body>
+</html>

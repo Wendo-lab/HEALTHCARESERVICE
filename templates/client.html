@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 140vh;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 900px;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        td, th {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ccc;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 15px;
+            background-color: #FF0000;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #FF0000;
+        }
+
+        #responseMessage {
+            margin-top: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>CLIENT DETAILS OVERVIEW</h2>
+        <form id="clientForm">
+            <table>
+                <tr>
+                    <td><label for="client_name">Client Name:</label></td>
+                    <td>
+                        <select id="client_name" name="client_name" required>
+                            <option value="">Select Client</option>
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td><label for="relationship_manager">Relationship Manager:</label></td>
+                    <td><input type="text" id="relationship_manager" name="relationship_manager" required></td>
+                </tr>
+                <tr>
+                    <td><label for="co_handler">Co-Handler:</label></td>
+                    <td><input type="text" id="co_handler" name="co_handler" required></td>
+                </tr>
+                <tr>
+                    <td><label for="policy_period">Policy Period:</label></td>
+                    <td><input type="text" id="policy_period" name="policy_period" required></td>
+                </tr>
+                <tr>
+                    <td><label for="premium">Premium:</label></td>
+                    <td><input type="text" id="premium" name="premium" required></td>
+                </tr>
+                <tr>
+                    <td><label for="admin_fee">Admin Fee:</label></td>
+                    <td><input type="text" id="admin_fee" name="admin_fee" required></td>
+                </tr>
+                <tr>
+                    <td><label for="income">Income:</label></td>
+                    <td><input type="text" id="income" name="income" required></td>
+                </tr>
+                <tr>
+                    <td><label for="cover_type">Cover Type:</label></td>
+                    <td>
+                        <select id="cover_type" name="cover_type" required>
+                            <option value="Insured">Insured</option>
+                            <option value="Hybrid">Hybrid</option>
+                            <option value="Funded">Funded</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td><label for="non_government">Non-Government:</label></td>
+                    <td><input type="checkbox" id="non_government" name="non_government"></td>
+                </tr>
+                <tr>
+                    <td><label for="government">Government:</label></td>
+                    <td><input type="checkbox" id="government" name="government"></td>
+                </tr>
+                <tr>
+                    <td><label for="client_main_contact">Main Contact:</label></td>
+                    <td><input type="text" id="client_main_contact" name="client_main_contact" required></td>
+                </tr>
+                <tr>
+                    <td><label for="client_designation">Designation:</label></td>
+                    <td><input type="text" id="client_designation" name="client_designation" required></td>
+                </tr>
+                <tr>
+                    <td><label for="client_cell">Cell:</label></td>
+                    <td><input type="text" id="client_cell" name="client_cell" required></td>
+                </tr>
+                <tr>
+                    <td><label for="client_email">Email:</label></td>
+                    <td><input type="email" id="client_email" name="client_email" required></td>
+                </tr>
+            </table>
+
+            <button type="submit">Submit</button>
+            <span><button id="nextPageButton" type="button" style="display: none;" onclick="goToNextPage()">➡ Next</button></span>
+        </form>
+        <p id="responseMessage"></p>
+    </div>
+
+    <script>
+        async function fetchClientNames() {
+            try {
+                const response = await fetch("/clients/names");
+                const data = await response.json();
+
+                if (response.ok && data.clients) {
+                    const dropdown = document.getElementById("client_name");
+                    dropdown.innerHTML = '<option value="">Select Client</option>'; // Reset dropdown
+
+                    data.clients.forEach(client => {
+                        let option = document.createElement("option");
+                        option.value = client;
+                        option.textContent = client;
+                        dropdown.appendChild(option);
+                    });
+                } else {
+                    console.error("Invalid response format:", data);
+                }
+            } catch (error) {
+                console.error("Error fetching client names:", error);
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", fetchClientNames);
+
+        // Handle form submission
+        document.getElementById("clientForm").addEventListener("submit", async function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            // Show confirmation prompt
+            const isConfirmed = confirm("Are you sure you want to submit the form?");
+            if (!isConfirmed) {
+                return; // Stop if the user cancels
+            }
+
+            const formData = new FormData(event.target);
+
+            try {
+                const response = await fetch("/clients/", {
+                    method: "POST",
+                    body: new URLSearchParams(formData),
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Show success message
+                    document.getElementById("responseMessage").innerText = "Form submitted successfully!";
+                    // Show the "Next" button
+                    document.getElementById("nextPageButton").style.display = "inline-block";
+                } else {
+                    // Show error message
+                    document.getElementById("responseMessage").innerText = "Error: " + JSON.stringify(data.detail);
+                }
+            } catch (error) {
+                // Show error message
+                document.getElementById("responseMessage").innerText = "Error submitting form.";
+            }
+        });
+
+        // Navigate to the next page
+        function goToNextPage() {
+            window.location.href = "/xtraclient/";
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Plan</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 90%;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #FF0000;
+            color: white;
+        }
+        input[type="text"], input[type="date"] {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .checkbox-container {
+            display: flex;
+            gap: 10px;
+        }
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+        button {
+            background-color: #FF0000;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+        }
+        #nextPageButton {
+            display: none;
+            background-color: #FF0000;
+        }
+        .back-button {
+            background-color: #FF0000;
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>CLIENT SERVICE SUMMARY</h2>
+        <p>To be filled before the next renewal cycle - Q4 of the client's calendar.</p>
+        <span id="clientName" style="font-size: 18px; font-weight: bold; color: #333;"></span> 
+
+        <form id="servicePlanForm" enctype="multipart/form-data">
+            <input type="hidden" id="client_id" name="client_id">
+
+            <table>
+                <thead>
+                    <tr><th>REF</th><th>Questions</th></tr>
+                </thead>
+                <tbody>
+                    {% for category, questions in STATIC_QUESTIONS.items() %}
+                        {% for question in questions %}
+                        <tr>
+                            {% if loop.first %}<td rowspan="{{ questions|length }}">{{ category }}</td>{% endif %}
+                            <td>
+                                <label>{{ question.text }}</label>
+                                {% if question.id == 4 %}
+                                    <!-- Text input for Question ID 4 -->
+                                    <input type="text" name="question_4" placeholder="Enter reason (if applicable)">
+                                {% elif question.id == 23 %}
+                                    <!-- Static text row, no input field -->
+                                {% elif question.type == "boolean" %}
+                                    <div class="checkbox-container">
+                                        <label><input type="radio" name="question_{{ question.id }}" value="yes" {% if question.id == 22 %}id="question_22_yes"{% endif %}> Yes</label>
+                                        <label><input type="radio" name="question_{{ question.id }}" value="no" {% if question.id == 22 %}id="question_22_no"{% endif %}> No</label>
+                                    </div>
+                                    {% if question.id == 22 %}
+                                        <div id="fileUploadGroup" style="display: none;">
+                                            <label for="question_22_file">Upload Document:</label>
+                                            <input type="file" id="question_22_file" name="question_22_file">
+                                        </div>
+                                    {% endif %}
+                                {% elif question.type == "date" %}
+                                    <input type="text" name="question_{{ question.id }}" placeholder="YYYY-MM-DD" pattern="\d{4}-\d{2}-\d{2}" title="Enter date in YYYY-MM-DD format">
+                                {% else %}
+                                    <input type="text" name="question_{{ question.id }}">
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="button-container">
+                <button type="submit">Submit</button>
+                <button type="button" id="nextPageButton" onclick="goToNextPage()">Next Page</button>
+                <button class="back-button" onclick="goBack()">Back</button>
+            </div>
+        </form>
+    </div>
+    
+    <script>
+        async function fetchClientName() {
+            try {
+                const response = await fetch("/get_client_name/"); // Endpoint to get the client name
+                const data = await response.json();
+
+                if (response.ok && data.client_name) {
+                    // Display the client name in the placeholder
+                    document.getElementById("clientName").textContent = `Client: ${data.client_name}`;
+                } else {
+                    console.error("Failed to fetch client name:", data);
+                }
+            } catch (error) {
+                console.error("Error fetching client name:", error);
+            }
+        }
+        
+        document.addEventListener("DOMContentLoaded", fetchClientName);
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const question22Yes = document.getElementById("question_22_yes");
+            const question22No = document.getElementById("question_22_no");
+            const fileUploadGroup = document.getElementById("fileUploadGroup");
+            const fileInput = document.getElementById("question_22_file");
+
+            function toggleFileUpload() {
+                if (question22Yes.checked) {
+                    console.log("Yes selected, showing file upload"); // Debugging
+                    fileUploadGroup.style.display = "block";
+                    fileInput.required = true;
+                } else {
+                    console.log("No selected, hiding file upload"); // Debugging
+                    fileUploadGroup.style.display = "none";
+                    fileInput.required = false;
+                    fileInput.value = ""; // Clear the file input when switching to No
+                }
+            }
+
+            if (question22Yes && question22No && fileUploadGroup && fileInput) {
+                question22Yes.addEventListener("change", toggleFileUpload);
+                question22No.addEventListener("change", toggleFileUpload);
+
+                // Trigger the function on page load to set the initial state
+                toggleFileUpload();
+            } else {
+                console.error("One or more elements not found"); // Debugging
+            }
+        });
+        
+        document.getElementById("servicePlanForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            console.log("Form submission started"); // Debugging
+
+            // Confirmation pop-up before submitting
+            const isConfirmed = confirm("Are you sure you want to save the responses?");
+            if (!isConfirmed) {
+                console.log("Form submission cancelled by user"); // Debugging
+                return;
+            }
+
+            const formData = new FormData();
+            const responses = [];
+
+            document.querySelectorAll("input").forEach((input) => {
+                if (input.name.startsWith("question_")) {
+                    let questionId = input.name.split("_")[1];
+                    let responseValue;
+
+                    // Handle Question ID 4 separately (text input)
+                    if (questionId == 4) {
+                        responseValue = input.value; // Save as text
+                    } else {
+                        responseValue = input.type === "radio" ? (input.checked ? input.value : null) : input.value;
+                    }
+
+                    if (responseValue !== null && responseValue !== "") {
+                        responses.push({
+                            question_id: parseInt(questionId),
+                            response: responseValue
+                        });
+                    }
+                }
+            });
+
+            console.log("Responses to be sent:", responses); // Debugging
+
+            formData.append("responses", JSON.stringify(responses));
+
+            // Validate file upload for question 22
+            const question22Yes = document.getElementById("question_22_yes").checked;
+            const fileInput = document.getElementById("question_22_file");
+
+            if (question22Yes) {
+                if (!fileInput || fileInput.files.length === 0) {
+                    alert("You must upload a file when selecting 'Yes' for question 22.");
+                    console.log("File upload required for question 22"); // Debugging
+                    return;
+                }
+
+                formData.append("file", fileInput.files[0]);
+                console.log("File appended to form data"); // Debugging
+            }
+
+            console.log("Sending POST request to /serviceplan/response/"); // Debugging
+            fetch("/serviceplan/response/", {
+                method: "POST",
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert(data.message);
+                    document.getElementById("nextPageButton").style.display = "inline-block";
+                } else {
+                    alert("Error: " + (data.detail || "Something went wrong"));
+                }
+            })
+            .catch(error => {
+                console.error("Error submitting responses:", error);
+                alert("Failed to submit the form. Please try again.");
+            });
+        });
+
+        function goToNextPage() {
+            console.log("Navigating to the next page"); // Debugging
+            window.location.href = "/signout/"; // Navigate to the next page
+        }
+        
+        function goBack() {
+            window.location.href = "/annualplan/";
+        }
+    </script>
+</body>
+</html>
